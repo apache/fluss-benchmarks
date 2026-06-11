@@ -1,0 +1,15 @@
+# Quick Validation: 100% Pure Insert
+#   10,000 records, 10,000 operations
+
+recordcount=10000
+operationcount=10000
+workload=site.ycsb.workloads.CoreWorkload
+
+readallfields=true
+
+readproportion=0
+updateproportion=0
+scanproportion=0
+insertproportion=1
+
+requestdistribution=zipfian

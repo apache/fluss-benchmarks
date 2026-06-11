@@ -1,0 +1,15 @@
+# Benchmark: 100% Pure Insert (100M)
+#   100 million records, 100 million operations
+
+recordcount=100000000
+operationcount=100000000
+workload=site.ycsb.workloads.CoreWorkload
+
+readallfields=true
+
+readproportion=0
+updateproportion=0
+scanproportion=0
+insertproportion=1
+
+requestdistribution=zipfian

@@ -3,3 +3,7 @@
 target
 *.iml
 tools/release
+
+# YCSB runtime output
+ycsb/results/
+ycsb/logs/

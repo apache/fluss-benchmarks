@@ -1,0 +1,16 @@
+# Benchmark: 100% Pure Insert
+#   20 million records, 20 million operations
+#   Default data size: 1 KB records (10 fields, 100 bytes each, plus key)
+
+recordcount=20000000
+operationcount=20000000
+workload=site.ycsb.workloads.CoreWorkload
+
+readallfields=true
+
+readproportion=0
+updateproportion=0
+scanproportion=0
+insertproportion=1
+
+requestdistribution=zipfian

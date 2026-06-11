@@ -1,0 +1,15 @@
+# Benchmark: 100% Pure Point Lookup (5M)
+#   5 million records, 5 million operations
+
+recordcount=5000000
+operationcount=5000000
+workload=site.ycsb.workloads.CoreWorkload
+
+readallfields=true
+
+readproportion=1
+updateproportion=0
+scanproportion=0
+insertproportion=0
+
+requestdistribution=zipfian
