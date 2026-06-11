@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+if [ -z "$HEAP_OPTS" ]
+then
+    HEAP_OPTS="-Xms4G -Xmx4G"
+fi
+
+JVM_MEM="${HEAP_OPTS}"
+JVM_OPENS="--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED"
+JVM_GC_LOG=" -XX:+PrintGCDetails -XX:+PrintGCApplicationStoppedTime  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=64m  -Xloggc:/dev/shm/benchmark-client-gc_%p.log"
+
+# Load JVM options from jvm.config file if it exists
+JVM_OPTS=""
+if [ -f "jvm.config" ]; then
+    while IFS= read -r line; do
+        # Skip empty lines and comments
+        if [[ -n "$line" && ! "$line" =~ ^[[:space:]]*# ]]; then
+            JVM_OPTS="$JVM_OPTS $line"
+        fi
+    done < jvm.config
+fi
+
+# Build classpath
+if [ -d "./lib" ]; then
+    # Deployed mode: all jars in lib/
+    CLASSPATH="lib/*"
+else
+    # Dev mode: framework fat jar + driver jars
+    CLASSPATH="benchmark-framework/target/benchmark-framework-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    for dir in driver-*/target; do
+        if [ -d "$dir" ]; then
+            for jar in "$dir"/*.jar "$dir"/dependency/*.jar; do
+                [ -f "$jar" ] && CLASSPATH="$CLASSPATH:$jar"
+            done
+        fi
+    done
+fi
+
+java -server $JVM_OPTS $JVM_MEM $JVM_OPENS -cp "$CLASSPATH" io.openmessaging.benchmark.Benchmark $*

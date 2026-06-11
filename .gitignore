@@ -3,3 +3,16 @@
 target
 *.iml
 tools/release
+
+*.json
+*.log
+.DS_Store
+
+# Sensitive environment-specific configs
+docs/
+openmessaging-benchmark/driver-fluss/config/cloud/
+openmessaging-benchmark/driver-fluss/config/cloud2/
+openmessaging-benchmark/driver-fluss/config/cloud3/
+openmessaging-benchmark/driver-fluss/config/local/
+openmessaging-benchmark/scripts/
+openmessaging-benchmark/org/
