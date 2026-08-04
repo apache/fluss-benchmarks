@@ -1,0 +1,52 @@
+# Copy this file to terraform.tfvars and update with your values
+
+aws_region = "us-west-2"
+environment = "dev"
+eks_cluster_name = "your-eks-cluster-name"
+# Use a currently EKS-supported version (check: aws eks describe-cluster-versions --region <region>)
+kubernetes_version = "1.35"
+namespace = "fluss"
+
+# Fluss configuration — must match FLUSS_VERSION used in push-images-to-ecr.sh and default.env.sh
+fluss_version = "0.9.0-incubating"
+# ECR repository URL for Fluss image
+# Update with your AWS account ID: <account-id>.dkr.ecr.<region>.amazonaws.com/fluss
+fluss_image_repository = "343218179954.dkr.ecr.us-west-2.amazonaws.com/fluss"
+use_ecr_for_fluss = true  # Set to false to use Docker Hub (apache/fluss)
+
+# Demo application image (ECR repository URL)
+# Update with your AWS account ID: <account-id>.dkr.ecr.<region>.amazonaws.com/fluss-demo
+demo_image_repository = "343218179954.dkr.ecr.us-west-2.amazonaws.com/fluss-demo"
+demo_image_tag = "latest"
+
+# ZooKeeper configuration
+zookeeper_replicas = 1
+
+# Fluss configuration
+coordinator_replicas = 1
+tablet_server_replicas = 3
+
+# Storage configuration
+# Set to false to use root volume (gp3) of EC2 instances instead of separate EBS volumes
+# When false, tablet servers write to /tmp/fluss/data on the root volume
+enable_persistence = false
+storage_class = "gp3"  # Only used if enable_persistence = true
+storage_size = "20Gi"  # Only used if enable_persistence = true
+
+# EBS CSI Driver (for gp3 PersistentVolumes)
+# Install EBS CSI driver addon - required if enable_persistence = true
+# Even if persistence is disabled, installing it allows future flexibility
+install_ebs_csi_driver = true
+
+# EC2 Instance Configuration for Fluss Nodes
+# These instances will be added to EKS cluster with specific labels
+coordinator_instance_type = "t3.medium"
+tablet_server_instance_type = "t3.medium"
+coordinator_instance_count = 1
+tablet_server_instance_count = 3
+
+# EC2 Instance Configuration
+# key_name = "your-key-pair-name"  # Optional: SSH key for EC2 instances
+# subnet_ids = ["subnet-xxx", "subnet-yyy"]  # Optional: Specific subnets for instances
+# security_group_ids = ["sg-xxx"]  # Optional: Additional security groups
+

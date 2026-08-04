@@ -1,0 +1,150 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fluss-producer
+  namespace: ${NAMESPACE}
+  labels:
+    app: fluss-producer
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: fluss-producer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        node-type: producer
+      tolerations:
+        - key: producer-component
+          operator: Equal
+          value: producer
+          effect: NoSchedule
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: fluss-producer
+      initContainers:
+        - name: wait-for-fluss
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Fluss coordinator to be ready..."
+              # Check if the port is open using nc (this will also verify DNS resolution)
+              until nc -zv coordinator-server-hs.fluss.svc.cluster.local 9124 2>&1 | grep -q "open"; do
+                echo "Waiting for Fluss coordinator on coordinator-server-hs.fluss.svc.cluster.local:9124..."
+                sleep 2
+              done
+              echo "Fluss coordinator is ready!"
+      containers:
+        - name: producer
+          image: ${DEMO_IMAGE_REPO}:${DEMO_IMAGE_TAG}
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: BOOTSTRAP
+              value: "${BOOTSTRAP}"
+            - name: DATABASE
+              value: "${DATABASE}"
+            - name: TABLE
+              value: "${TABLE}"
+            - name: BUCKETS
+              value: "${BUCKETS}"
+            - name: PRODUCER_RATE
+              value: "${PRODUCER_RATE}"
+            - name: PRODUCER_FLUSH_EVERY
+              value: "${PRODUCER_FLUSH_EVERY}"
+            - name: PRODUCER_STATS_INTERVAL_SECONDS
+              value: "${PRODUCER_STATS_INTERVAL_SECONDS}"
+            - name: CLIENT_WRITER_BUFFER_MEMORY_SIZE
+              value: "${CLIENT_WRITER_BUFFER_MEMORY_SIZE}"
+            - name: CLIENT_WRITER_BATCH_SIZE
+              value: "${CLIENT_WRITER_BATCH_SIZE}"
+            - name: CLIENT_WRITER_BATCH_TIMEOUT
+              value: "${CLIENT_WRITER_BATCH_TIMEOUT}"
+            - name: TOTAL_PRODUCERS
+              value: "${TOTAL_PRODUCERS}"
+            - name: INSTANCE_ID
+              value: "${INSTANCE_ID}"
+            - name: NUM_WRITER_THREADS
+              value: "${NUM_WRITER_THREADS}"
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              java --add-opens=java.base/java.util=ALL-UNNAMED \
+                   --add-opens=java.base/java.lang=ALL-UNNAMED \
+                   --add-opens=java.base/java.nio=ALL-UNNAMED \
+                   --add-opens=java.base/java.time=ALL-UNNAMED \
+                   -cp /opt/flink/usrlib/fluss-flink-realtime-demo.jar \
+                   org.apache.fluss.benchmark.e2eplatformaws.producer.FlussSensorProducerAppMultiInstance \
+                   --bootstrap "$BOOTSTRAP" \
+                   --database "$DATABASE" \
+                   --table "$TABLE" \
+                   --buckets "$BUCKETS" \
+                   --total-producers "$TOTAL_PRODUCERS" \
+                   --instance-id "$INSTANCE_ID" \
+                   --rate "$PRODUCER_RATE" \
+                   --writer-threads "$NUM_WRITER_THREADS" \
+                   --flush "$PRODUCER_FLUSH_EVERY" \
+                   --stats-interval "$PRODUCER_STATS_INTERVAL_SECONDS"
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              memory: "${PRODUCER_MEMORY_REQUEST}"
+              cpu: "${PRODUCER_CPU_REQUEST}"
+            limits:
+              memory: "${PRODUCER_MEMORY_LIMIT}"
+              cpu: "${PRODUCER_CPU_LIMIT}"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluss-producer-metrics
+  namespace: ${NAMESPACE}
+  labels:
+    app: fluss-producer
+spec:
+  selector:
+    app: fluss-producer
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+

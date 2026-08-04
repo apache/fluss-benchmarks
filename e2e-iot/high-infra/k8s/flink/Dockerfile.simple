@@ -1,0 +1,30 @@
+# Simplified Dockerfile - assumes JAR is already built
+# Build with: docker build --build-arg JAR_PATH=/path/to/jar -f Dockerfile.simple .
+
+FROM apache/flink:1.20.3-scala_2.12-java17
+
+# Ensure Prometheus metrics reporter is in plugins directory (required for Flink 1.20.3)
+# The base image should already have it, but we'll verify and ensure it's properly configured
+RUN mkdir -p /opt/flink/plugins/metrics-prometheus && \
+    if [ ! -f /opt/flink/plugins/metrics-prometheus/flink-metrics-prometheus-1.20.3.jar ]; then \
+        curl -L https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.3/flink-metrics-prometheus-1.20.3.jar \
+            -o /opt/flink/plugins/metrics-prometheus/flink-metrics-prometheus-1.20.3.jar && \
+        chmod 644 /opt/flink/plugins/metrics-prometheus/flink-metrics-prometheus-1.20.3.jar; \
+    fi
+
+# Set working directory
+WORKDIR /opt/flink/usrlib
+
+# Copy JAR from build context
+COPY fluss-flink-realtime-demo.jar /opt/flink/usrlib/fluss-flink-realtime-demo.jar
+
+# Verify the JAR is present
+RUN ls -lh /opt/flink/usrlib/fluss-flink-realtime-demo.jar || \
+    (echo "ERROR: JAR file not found" && exit 1)
+
+# Metadata
+LABEL maintainer="Fluss Team"
+LABEL description="Fluss Flink Realtime Demo - JAR embedded for local:// submission"
+LABEL version="0.1.0"
+LABEL flink.version="1.20.3"
+

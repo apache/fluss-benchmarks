@@ -1,0 +1,817 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+apiVersion: v1
+data:
+  fluss-flink-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Fluss & Flink Monitoring Dashboard",
+        "tags": ["fluss", "flink", "producer", "metrics"],
+        "timezone": "browser",
+        "schemaVersion": 38,
+        "version": 0,
+        "refresh": "5s",
+        "time": {
+          "from": "now-15m",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Producer - Records Per Second",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "smooth",
+                  "fillOpacity": 10,
+                  "lineWidth": 2
+                },
+                "unit": "ops",
+                "decimals": 0,
+                "min": 0
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(max(rate(fluss_producer_records_total[5m])) by (pod))",
+                "legendFormat": "Total Records/sec",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 2,
+            "title": "Producer - Total Records",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(fluss_producer_records_total)",
+                "legendFormat": "Total Records",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 3,
+            "title": "Flink - Input Records Per Second",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ops"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(flink_taskmanager_job_task_operator_numRecordsInPerSecond{operator_name=\"FlussChangelogFilter\",job=\"flink-taskmanager\"})",
+                "legendFormat": "Input Records/sec (From Fluss - Before Filter)",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 4,
+            "title": "Flink - Output Records Per Second",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ops"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(flink_taskmanager_job_task_operator_numRecordsOutPerSecond{job=\"flink-taskmanager\"}) by (operator_name) or vector(0)",
+                "legendFormat": "{{operator_name}}",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 5,
+            "title": "Flink - Custom Aggregator Records In",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(flink_taskmanager_job_task_operator_fluss_aggregator_records_in{job=\"flink-taskmanager\"}) or vector(0)",
+                "legendFormat": "Total Input Records",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 6,
+            "title": "Flink - Custom Aggregator Records Out",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(flink_taskmanager_job_task_operator_fluss_aggregator_records_out{job=\"flink-taskmanager\"}) or vector(0)",
+                "legendFormat": "Total Output Records",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 7,
+            "title": "Flink - Event Time Lag (ms)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ms"
+              }
+            },
+            "targets": [
+              {
+                "expr": "flink_taskmanager_job_task_operator_fluss_aggregator_event_time_lag_ms",
+                "legendFormat": "Custom Event Time Lag",
+                "refId": "A"
+              },
+              {
+                "expr": "flink_taskmanager_job_task_operator_currentFetchEventTimeLag",
+                "legendFormat": "Flink Event Time Lag",
+                "refId": "B"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 8,
+            "title": "Flink - Backpressure",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ms"
+              }
+            },
+            "targets": [
+              {
+                "expr": "flink_taskmanager_job_task_backPressuredTimeMsPerSecond",
+                "legendFormat": "Backpressure",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 9,
+            "title": "Flink Cluster - Running Jobs",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 32},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "flink_jobmanager_numRunningJobs",
+                "legendFormat": "Running Jobs",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 10,
+            "title": "Flink Cluster - TaskManagers",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 32},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "flink_jobmanager_numRegisteredTaskManagers",
+                "legendFormat": "Task Managers",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 11,
+            "title": "Flink Cluster - Available Task Slots",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 32},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "flink_jobmanager_taskSlotsAvailable",
+                "legendFormat": "Available Slots",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 12,
+            "title": "Flink - Total Input Records",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 32},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(flink_taskmanager_job_task_operator_fluss_aggregator_records_in{job=\"flink-taskmanager\"}) or vector(0)",
+                "legendFormat": "Custom Aggregator Input",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 13,
+            "title": "Flink - Total Output Records",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 36},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(flink_taskmanager_job_task_operator_fluss_aggregator_records_out{job=\"flink-taskmanager\"}) or vector(0)",
+                "legendFormat": "Custom Aggregator Output",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 14,
+            "title": "Flink JobManager - JVM Heap Used",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "bytes"
+              }
+            },
+            "targets": [
+              {
+                "expr": "flink_jobmanager_Status_JVM_Memory_Heap_Used",
+                "legendFormat": "Heap Used",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 15,
+            "title": "Flink TaskManager - JVM Heap Used",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "bytes"
+              }
+            },
+            "targets": [
+              {
+                "expr": "flink_taskmanager_Status_JVM_Memory_Heap_Used",
+                "legendFormat": "{{tm_id}}",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 16,
+            "title": "Fluss Coordinator - Active Tablet Servers",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 48},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_activeTabletServerCount",
+                "legendFormat": "Active Tablet Servers",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 17,
+            "title": "Fluss Coordinator - Table Count",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 48},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_tableCount",
+                "legendFormat": "Tables",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 18,
+            "title": "Fluss Coordinator - Bucket Count",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 48},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_bucketCount",
+                "legendFormat": "Buckets",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 19,
+            "title": "Fluss Coordinator - Partition Count",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 48},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_partitionCount",
+                "legendFormat": "Partitions",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 20,
+            "title": "Fluss Coordinator - Event Queue Size",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 56},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "short"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_eventQueueSize",
+                "legendFormat": "Event Queue Size",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 21,
+            "title": "Fluss Coordinator - Event Processing Time (p95)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 56},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ms"
+              }
+            },
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(fluss_coordinator_eventProcessingTimeMs[1m])) by (le, host))",
+                "legendFormat": "p95 Event Processing Time - {{host}}",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 22,
+            "title": "Fluss Tablet Server - Messages In Rate",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 64},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ops"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(fluss_tabletserver_messagesInPerSecond) by (host)",
+                "legendFormat": "{{host}}",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 23,
+            "title": "Fluss Tablet Server - Bytes In/Out Rate",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 64},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "Bps"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(fluss_tabletserver_bytesInPerSecond) by (host)",
+                "legendFormat": "Bytes In - {{host}}",
+                "refId": "A"
+              },
+              {
+                "expr": "sum(fluss_tabletserver_bytesOutPerSecond) by (host)",
+                "legendFormat": "Bytes Out - {{host}}",
+                "refId": "B"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 24,
+            "title": "Fluss Tablet Server - Replication Rates",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 72},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "Bps"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(fluss_tabletserver_replicationBytesInPerSecond) by (host)",
+                "legendFormat": "Replication In - {{host}}",
+                "refId": "A"
+              },
+              {
+                "expr": "sum(fluss_tabletserver_replicationBytesOutPerSecond) by (host)",
+                "legendFormat": "Replication Out - {{host}}",
+                "refId": "B"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 25,
+            "title": "Fluss Tablet Server - Request Rates by Type",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 72},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "ops"
+              }
+            },
+            "targets": [
+              {
+                "expr": "sum(fluss_tabletserver_request_requestsPerSecond{request=\"produceLog\"}) by (host)",
+                "legendFormat": "ProduceLog - {{host}}",
+                "refId": "A"
+              },
+              {
+                "expr": "sum(fluss_tabletserver_request_requestsPerSecond{request=\"fetchLogClient\"}) by (host)",
+                "legendFormat": "FetchLog Client - {{host}}",
+                "refId": "B"
+              },
+              {
+                "expr": "sum(fluss_tabletserver_request_requestsPerSecond{request=\"putKv\"}) by (host)",
+                "legendFormat": "PutKV - {{host}}",
+                "refId": "C"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 26,
+            "title": "Fluss Coordinator - JVM Heap Memory",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 80},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "bytes"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_status_JVM_memory_heap_used",
+                "legendFormat": "Heap Used - {{host}}",
+                "refId": "A"
+              },
+              {
+                "expr": "fluss_coordinator_status_JVM_memory_heap_max",
+                "legendFormat": "Heap Max - {{host}}",
+                "refId": "B"
+              },
+              {
+                "expr": "fluss_coordinator_status_JVM_memory_heap_committed",
+                "legendFormat": "Heap Committed - {{host}}",
+                "refId": "C"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 27,
+            "title": "Fluss Coordinator - CPU Usage",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 80},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "percentunit"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_status_JVM_CPU_load * 100",
+                "legendFormat": "CPU Load % - {{host}}",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 28,
+            "title": "Fluss Tablet Server - JVM Heap Memory",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 88},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "bytes"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_tabletserver_status_JVM_memory_heap_used",
+                "legendFormat": "Heap Used - {{host}}",
+                "refId": "A"
+              },
+              {
+                "expr": "fluss_tabletserver_status_JVM_memory_heap_max",
+                "legendFormat": "Heap Max - {{host}}",
+                "refId": "B"
+              },
+              {
+                "expr": "fluss_tabletserver_status_JVM_memory_heap_committed",
+                "legendFormat": "Heap Committed - {{host}}",
+                "refId": "C"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 29,
+            "title": "Fluss Tablet Server - CPU Usage",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 88},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "percentunit"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_tabletserver_status_JVM_CPU_load * 100",
+                "legendFormat": "CPU Load % - {{host}}",
+                "refId": "A"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 30,
+            "title": "Fluss Coordinator - JVM Non-Heap Memory",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 96},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "bytes"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_coordinator_status_JVM_memory_nonHeap_used",
+                "legendFormat": "Non-Heap Used - {{host}}",
+                "refId": "A"
+              },
+              {
+                "expr": "fluss_coordinator_status_JVM_memory_nonHeap_max",
+                "legendFormat": "Non-Heap Max - {{host}}",
+                "refId": "B"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          },
+          {
+            "id": 31,
+            "title": "Fluss Tablet Server - JVM Non-Heap Memory",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 96},
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                },
+                "unit": "bytes"
+              }
+            },
+            "targets": [
+              {
+                "expr": "fluss_tabletserver_status_JVM_memory_nonHeap_used",
+                "legendFormat": "Non-Heap Used - {{host}}",
+                "refId": "A"
+              },
+              {
+                "expr": "fluss_tabletserver_status_JVM_memory_nonHeap_max",
+                "legendFormat": "Non-Heap Max - {{host}}",
+                "refId": "B"
+              }
+            ],
+            "datasource": {"type": "prometheus", "uid": "prometheus"}
+          }
+        ]
+      },
+      "overwrite": true
+    }
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    grafana_dashboard: "1"
+  name: fluss-flink-dashboard
+  namespace: monitoring

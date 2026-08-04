@@ -1,0 +1,339 @@
+{
+  "dashboard": {
+    "title": "Fluss & Flink Complete Monitoring",
+    "tags": ["fluss", "flink", "producer", "metrics"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 0,
+    "refresh": "5s",
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Producer - Records Per Second",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10,
+              "pointSize": 5
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(max(fluss_producer_records_per_second) by (pod))",
+            "legendFormat": "Total Records/sec",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 2,
+        "title": "Producer - Total Records",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(fluss_producer_records_total)",
+            "legendFormat": "Total Records",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 3,
+        "title": "Flink - Input Records Per Second",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(flink_taskmanager_job_task_operator_numRecordsInPerSecond) by (operator_name)",
+            "legendFormat": "{{operator_name}}",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 4,
+        "title": "Flink - Output Records Per Second",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(flink_taskmanager_job_task_operator_numRecordsOutPerSecond) by (operator_name)",
+            "legendFormat": "{{operator_name}}",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 5,
+        "title": "Flink - Total Input Records",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(flink_taskmanager_job_task_operator_numRecordsIn)",
+            "legendFormat": "Total Input",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 6,
+        "title": "Flink - Total Output Records",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(flink_taskmanager_job_task_operator_numRecordsOut)",
+            "legendFormat": "Total Output",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 7,
+        "title": "Flink - Custom Aggregator Records In",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "flink_taskmanager_job_task_operator_fluss_aggregator_records_in",
+            "legendFormat": "Custom Input Counter",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 8,
+        "title": "Flink - Custom Aggregator Records Out",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "flink_taskmanager_job_task_operator_fluss_aggregator_records_out",
+            "legendFormat": "Custom Output Counter",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 9,
+        "title": "Flink - Event Time Lag (ms)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10
+            },
+            "unit": "ms"
+          }
+        },
+        "targets": [
+          {
+            "expr": "flink_taskmanager_job_task_operator_fluss_aggregator_event_time_lag_ms",
+            "legendFormat": "Custom Event Time Lag",
+            "refId": "A"
+          },
+          {
+            "expr": "flink_taskmanager_job_task_operator_currentFetchEventTimeLag",
+            "legendFormat": "Flink Event Time Lag",
+            "refId": "B"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 10,
+        "title": "Flink - Backpressure",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10
+            },
+            "unit": "ms"
+          }
+        },
+        "targets": [
+          {
+            "expr": "flink_taskmanager_job_task_backPressuredTimeMsPerSecond",
+            "legendFormat": "Backpressure",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 11,
+        "title": "Flink Cluster - Running Jobs",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 36},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "flink_jobmanager_numRunningJobs",
+            "legendFormat": "Running Jobs",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 12,
+        "title": "Flink Cluster - TaskManagers",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 36},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "flink_jobmanager_numRegisteredTaskManagers",
+            "legendFormat": "Task Managers",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 13,
+        "title": "Producer - Uptime",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 36},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "s"
+          }
+        },
+        "targets": [
+          {
+            "expr": "max(fluss_producer_uptime_seconds)",
+            "legendFormat": "Max Uptime",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      },
+      {
+        "id": 14,
+        "title": "Producer - Rate (5m avg)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 36},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(max(rate(fluss_producer_records_total[5m])) by (pod))",
+            "legendFormat": "Records/sec (5m avg)",
+            "refId": "A"
+          }
+        ],
+        "datasource": {"type": "prometheus", "uid": "prometheus"}
+      }
+    ]
+  },
+  "overwrite": true
+}
+

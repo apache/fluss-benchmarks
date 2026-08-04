@@ -1,0 +1,87 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fluss-producer
+  labels:
+    app: fluss-producer
+spec:
+  backoffLimit: 0  # Don't retry on failure
+  completions: 1    # Only 1 completion needed
+  parallelism: 1   # Only 1 pod at a time
+  template:
+    metadata:
+      labels:
+        app: fluss-producer
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: wait-for-fluss
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Fluss coordinator to be ready..."
+          COORD_HOST="coordinator-server-hs.default.svc.cluster.local"
+          # Use ping -4 to force IPv4 and test basic connectivity, then use nc for port check
+          # First ensure we can resolve to IPv4
+          until ping -4 -c 1 -W 1 "$COORD_HOST" >/dev/null 2>&1; do
+            echo "Waiting for Fluss DNS resolution..."
+            sleep 2
+          done
+          # Now check if the port is open using nc (with resolved IP, it should use IPv4)
+          until nc -zv "$COORD_HOST" 9124 2>&1 | grep -q "open"; do
+            echo "Waiting for Fluss on port 9124..."
+            sleep 2
+          done
+          echo "Fluss coordinator is ready!"
+      containers:
+      - name: producer
+        image: fluss-demo:latest
+        imagePullPolicy: Never  # Use local image loaded into Kind
+        securityContext:
+          runAsUser: 0  # Run as root to allow writing to /etc/hosts
+        command:
+        - /opt/flink/bin/entrypoint.sh
+        args:
+        - -jar
+        - /opt/flink/usrlib/fluss-flink-realtime-demo.jar
+        - --bootstrap
+        - coordinator-server-hs.default.svc.cluster.local:9124
+        - --database
+        - iot
+        - --table
+        - sensor_readings
+        - --buckets
+        - "12"
+        - --rate
+        - "2000"
+        - --flush
+        - "5000"
+        - --stats-interval
+        - "10"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+

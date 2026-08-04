@@ -1,0 +1,79 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+persistence:
+  enabled: ${enable_persistence}
+  storageClass: ${storage_class}
+  size: ${storage_size}
+  # Set to true to use local NVMe storage (requires local-storage StorageClass and PVs)
+  # When true, storageClass should be set to "local-storage"
+  local_storage: ${local_storage:-false}
+
+image:
+  # If using ECR, registry should be empty and repository should be the full ECR URL
+  # If using Docker Hub, registry should be "docker.io" and repository should be "apache/fluss"
+  registry: ${fluss_image_registry}
+  repository: ${fluss_image_repository}
+  tag: ${fluss_version}
+
+coordinator:
+  replicas: ${coordinator_replicas}
+  nodeSelector:
+    fluss-component: coordinator
+  tolerations:
+    - key: "fluss-component"
+      operator: "Equal"
+      value: "coordinator"
+      effect: "NoSchedule"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: fluss-component
+                operator: In
+                values:
+                  - coordinator
+
+tabletServer:
+  replicas: ${tablet_server_replicas}
+  nodeSelector:
+    fluss-component: tablet-server
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: fluss-component
+                operator: In
+                values:
+                  - tablet-server
+
+configurationOverrides:
+  "zookeeper.address": zk-svc.${namespace}.svc.cluster.local:2181
+  # Log retention/purging configuration
+  # table.log.ttl: Time to live for log segments (default: 7 days)
+  #   - Set to -1 to disable log deletion (keep all segments)
+  #   - Set to longer duration (e.g., "30d") to retain logs longer
+  #   - Format: Duration string (e.g., "7d", "168h", "604800s")
+  #   - This prevents Flink offset out-of-range errors when segments are purged
+  # "table.log.ttl": "-1"  # Uncomment to disable log deletion
+  # "table.log.ttl": "30d"  # Uncomment to retain logs for 30 days
+  # log.segment.file-size: Size of each log segment file (default: 1024m)
+  #   - Larger segments = fewer files but less granular retention control
+  # "log.segment.file-size": "1024m"
+

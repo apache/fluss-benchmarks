@@ -1,0 +1,216 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flink-job-jar
+  namespace: fluss
+  labels:
+    app: flink-job-submission
+binaryData:
+  # This will be populated by copying the JAR file
+  # To populate: kubectl create configmap flink-job-jar --from-file=fluss-flink-realtime-demo.jar=/path/to/jar --dry-run=client -o yaml | kubectl apply -f -
+  # Or use init container to download from S3/ECR/URL
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: flink-job-submitter
+  namespace: fluss
+  labels:
+    app: flink-job-submission
+spec:
+  backoffLimit: 3
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: flink-job-submission
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        # Wait for Flink JobManager to be ready
+        - name: wait-for-flink
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Flink JobManager to be ready..."
+              MAX_ATTEMPTS=60
+              ATTEMPT=0
+              while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+                if nc -zv -w 2 flink-jobmanager.fluss.svc.cluster.local 8081 2>&1 | grep -q "open\|succeeded"; then
+                  echo "Flink JobManager is ready!"
+                  exit 0
+                fi
+                ATTEMPT=$((ATTEMPT + 1))
+                echo "Waiting for Flink JobManager... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+                sleep 2
+              done
+              echo "ERROR: Flink JobManager did not become ready after $MAX_ATTEMPTS attempts"
+              exit 1
+        # Wait for Fluss coordinator
+        - name: wait-for-fluss
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Fluss coordinator to be ready..."
+              COORD_HOST="coordinator-server-hs.fluss.svc.cluster.local"
+              MAX_ATTEMPTS=60
+              ATTEMPT=0
+              while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+                if nc -zv -w 2 "$COORD_HOST" 9124 2>&1 | grep -q "open\|succeeded"; then
+                  echo "Fluss coordinator is ready!"
+                  exit 0
+                fi
+                ATTEMPT=$((ATTEMPT + 1))
+                echo "Waiting for Fluss coordinator... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+                sleep 2
+              done
+              echo "ERROR: Fluss coordinator did not become ready after $MAX_ATTEMPTS attempts"
+              exit 1
+        # Wait for producer to create database
+        - name: wait-for-producer-database
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for producer to start and create database 'iot'..."
+              echo "This init container waits 30 seconds to give the producer time to create the database"
+              sleep 30
+              echo "Proceeding - producer should have created the database by now"
+              exit 0
+        # Download or copy JAR file
+        - name: prepare-job-jar
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              # Option 1: Download from URL (if JAR is hosted)
+              # curl -L -o /tmp/fluss-flink-realtime-demo.jar "${JAR_URL}"
+              
+              # Option 2: Copy from ConfigMap (if populated)
+              # cp /job-jar/fluss-flink-realtime-demo.jar /tmp/fluss-flink-realtime-demo.jar
+              
+              # Option 3: Download from S3 (if configured)
+              # aws s3 cp s3://bucket/path/to/jar /tmp/fluss-flink-realtime-demo.jar
+              
+              # For now, we'll use a sidecar approach - the JAR should be in the image
+              # Or mounted via volume from ConfigMap
+              echo "JAR preparation complete"
+              ls -lh /tmp/ || true
+          volumeMounts:
+            - name: job-jar
+              mountPath: /tmp
+          env:
+            - name: JAR_URL
+              value: "${JAR_URL:-}"
+      containers:
+        - name: job-submitter
+          image: apache/flink:1.20.3-scala_2.12-java17
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              
+              echo "Submitting Flink job to cluster..."
+              
+              # Method 1: Use Flink CLI (requires JAR in image or mounted)
+              # /opt/flink/bin/flink run \
+              #   -m flink-jobmanager:6123 \
+              #   -c org.apache.fluss.benchmark.e2eplatformaws.flink.FlinkSensorAggregatorJob \
+              #   /tmp/fluss-flink-realtime-demo.jar \
+              #   --bootstrap coordinator-server-hs.fluss.svc.cluster.local:9124 \
+              #   --database iot \
+              #   --table sensor_readings \
+              #   --window-minutes 1
+              
+              # Method 2: Use Flink REST API (more flexible)
+              JOBMANAGER="flink-jobmanager.fluss.svc.cluster.local:8081"
+              
+              # Upload JAR first (if not already in cluster)
+              echo "Uploading JAR to Flink cluster..."
+              JAR_ID=$(curl -s -X POST \
+                "http://${JOBMANAGER}/v1/jars/upload" \
+                -H "Content-Type: multipart/form-data" \
+                -F "jarfile=@/tmp/fluss-flink-realtime-demo.jar" \
+                | jq -r '.filename' | sed 's|.*/||')
+              
+              if [ -z "$JAR_ID" ] || [ "$JAR_ID" = "null" ]; then
+                echo "ERROR: Failed to upload JAR"
+                exit 1
+              fi
+              
+              echo "JAR uploaded with ID: $JAR_ID"
+              
+              # Submit job
+              echo "Submitting job..."
+              JOB_RESPONSE=$(curl -s -X POST \
+                "http://${JOBMANAGER}/v1/jars/${JAR_ID}/run" \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "entryClass": "org.apache.fluss.benchmark.e2eplatformaws.flink.FlinkSensorAggregatorJob",
+                  "programArgs": "--bootstrap coordinator-server-hs.fluss.svc.cluster.local:9124 --database iot --table sensor_readings --window-minutes 1",
+                  "parallelism": 2,
+                  "savepointPath": null,
+                  "allowNonRestoredState": false
+                }')
+              
+              JOB_ID=$(echo "$JOB_RESPONSE" | jq -r '.jobid')
+              
+              if [ -z "$JOB_ID" ] || [ "$JOB_ID" = "null" ]; then
+                echo "ERROR: Failed to submit job"
+                echo "Response: $JOB_RESPONSE"
+                exit 1
+              fi
+              
+              echo "Job submitted successfully!"
+              echo "Job ID: $JOB_ID"
+              echo "Job status: http://${JOBMANAGER}/#/job/${JOB_ID}"
+              
+              # Wait a bit to ensure job started
+              sleep 5
+              
+              # Check job status
+              JOB_STATUS=$(curl -s "http://${JOBMANAGER}/jobs/${JOB_ID}" | jq -r '.state')
+              echo "Job status: $JOB_STATUS"
+              
+              if [ "$JOB_STATUS" != "RUNNING" ] && [ "$JOB_STATUS" != "CREATED" ]; then
+                echo "WARNING: Job is not in RUNNING state: $JOB_STATUS"
+                exit 1
+              fi
+              
+              echo "Job submission completed successfully!"
+          volumeMounts:
+            - name: job-jar
+              mountPath: /tmp
+          env:
+            - name: FLINK_CONF_DIR
+              value: "/opt/flink/conf"
+      volumes:
+        - name: job-jar
+          emptyDir: {}
+

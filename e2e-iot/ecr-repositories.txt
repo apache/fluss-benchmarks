@@ -1,0 +1,28 @@
+# ECR Repository Details
+# Generated on: Fri Jun 12 16:19:30 IST 2026
+# AWS Account ID: 343218179954
+# AWS Region: us-west-2
+
+# Demo/Producer Image Repository
+DEMO_IMAGE_REPOSITORY="343218179954.dkr.ecr.us-west-2.amazonaws.com/fluss-demo"
+DEMO_IMAGE_TAG="latest"
+
+# For terraform.tfvars:
+demo_image_repository = "343218179954.dkr.ecr.us-west-2.amazonaws.com/fluss-demo"
+
+# Fluss Image Repository
+FLUSS_IMAGE_REPOSITORY="343218179954.dkr.ecr.us-west-2.amazonaws.com/fluss"
+FLUSS_IMAGE_VERSION="0.9.0-incubating"
+FLUSS_VERSION="0.9.0-incubating"
+
+# For terraform.tfvars:
+fluss_image_repository = "343218179954.dkr.ecr.us-west-2.amazonaws.com/fluss"
+fluss_version = "0.9.0-incubating"
+use_ecr_for_fluss = true
+
+# Full ECR Base URL
+ECR_BASE="343218179954.dkr.ecr.us-west-2.amazonaws.com"
+
+# To use these values in shell scripts:
+# source /Users/vijayabhaskarv/IOT/FLUSS/2-million-repo/final-test/fluss-benchmarks/e2e-iot/ecr-repositories.txt
+# echo ${DEMO_IMAGE_REPOSITORY}

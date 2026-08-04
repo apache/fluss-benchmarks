@@ -1,0 +1,105 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flink-config
+  namespace: ${NAMESPACE}
+data:
+  flink-conf.yaml: |
+    # Flink Configuration with Prometheus Metrics Reporter
+    # ======================================================
+    
+    # JobManager Configuration
+    jobmanager.rpc.address: flink-jobmanager
+    jobmanager.rpc.port: 6123
+    jobmanager.memory.process.size: 1600m
+    
+    # TaskManager Configuration
+    taskmanager.memory.process.size: 24g
+    taskmanager.memory.task.off-heap.size: 4g
+    taskmanager.memory.framework.off-heap.size: 2g
+    taskmanager.memory.network.fraction: 0.2
+    taskmanager.memory.network.min: 1gb
+    taskmanager.memory.network.max: 4gb
+    taskmanager.numberOfTaskSlots: 32
+    parallelism.default: 192
+    
+    # Blob and Query Server Ports
+    blob.server.port: 6124
+    queryable-state.server.ports: 6125
+    
+    # Metrics Configuration
+    # =====================
+    
+    # Enable metrics reporters
+    metrics.reporters: prometheus
+    
+    # Prometheus Reporter Configuration (Flink 1.20.3 uses factory.class)
+    metrics.reporter.prometheus.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    metrics.reporter.prometheus.port: 9249-9259
+    metrics.reporter.prometheus.filterLabelValueCharacters: false
+    
+    # System Resource Metrics
+    metrics.system-resource: true
+    metrics.system-resource-probing-interval: 5000
+    
+    # Latency Tracking
+    metrics.latency.interval: 10000
+    metrics.latency.granularity: operator
+    metrics.latency.history-size: 128
+    
+    # Web Frontend Configuration
+    web.submit.enable: true
+    web.cancel.enable: true
+    web.tmpdir: /tmp/flink-web
+    
+    # Watermark configuration to prevent watermark stalling
+    # This helps with low watermark issues when some partitions are idle
+    pipeline.auto-watermark-interval: 200ms
+    
+    # Network Configuration for High Throughput (2M+ messages/sec)
+    # ============================================================
+    # Network buffer configuration for high-throughput scenarios
+    # Memory allocation is handled by taskmanager.memory.network.* above
+    taskmanager.network.memory.buffers-per-channel: 2
+    taskmanager.network.memory.floating-buffers-per-gate: 8
+    
+    # Network buffer timeout - increase for high throughput
+    taskmanager.network.request-backoff.max: 10000
+    taskmanager.network.request-backoff.initial: 100
+    
+    # Network stack optimizations
+    taskmanager.network.detailed-metrics: false
+    
+    # Checkpointing Configuration - DISABLED for performance
+    # Checkpointing disabled to reduce overhead and improve throughput
+    # NOTE: This disables fault tolerance - job will restart from beginning on failure
+    state.backend: rocksdb
+    state.backend.incremental: true
+    # Checkpointing disabled
+    # execution.checkpointing.interval: disabled
+    # execution.checkpointing.mode: disabled
+    
+    # S3 Configuration - Force IRSA credential provider (matches reference config)
+    fs.s3a.aws.credentials.provider: com.amazonaws.auth.WebIdentityTokenCredentialsProvider
+    s3.path.style.access: "false"
+    
+    # Logging
+    taskmanager.log.path: /opt/flink/log
+    jobmanager.log.path: /opt/flink/log
